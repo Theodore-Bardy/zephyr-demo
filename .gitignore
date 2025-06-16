@@ -1,0 +1,6 @@
+# author: Theodore Bardy
+#
+# This file is part of the Zephyr Demo project from Witekio
+
+.vscode/
+build*
