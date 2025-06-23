@@ -14,6 +14,8 @@ LOG_MODULE_REGISTER(main);
 #include <zephyr/drivers/spi.h>
 #include <zephyr/drivers/led_strip.h>
 
+#include "wifi_agent.h"
+
 #define STRIP_NODE DT_ALIAS(led_strip)
 #if DT_NODE_HAS_PROP(DT_ALIAS(led_strip), chain_length)
 #define STRIP_NUM_PIXELS DT_PROP(DT_ALIAS(led_strip), chain_length)
@@ -70,6 +72,9 @@ K_THREAD_DEFINE(main_thread_id, MAIN_THREAD_STACK_SIZE, main_thread, NULL, NULL,
 int main(void)
 {
     LOG_INF("Hello world! %s", CONFIG_BOARD_TARGET);
+
+    wifi_agent_init();
+    wifi_agent_connect();
 
     while (1) {
         k_sleep(K_FOREVER);

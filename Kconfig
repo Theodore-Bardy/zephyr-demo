@@ -1,0 +1,17 @@
+mainmenu "Configuration for the Zephyr Demo project from Witekio"
+
+menu "Wi-Fi Configuration"
+
+config WIFI_SSID
+    string "Wi-Fi SSID"
+    help
+      Set the Wi-Fi SSID.
+
+config WIFI_PASSWORD
+    string "Wi-Fi Password"
+    help
+      Set the Wi-Fi password.
+
+endmenu
+
+source "Kconfig.zephyr"

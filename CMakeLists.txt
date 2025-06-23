@@ -16,6 +16,9 @@ set(DTC_OVERLAY_FILE boards/esp32s3_devkitc_procpu.overlay)
 # Pull Zephyr build system
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
+# Include subdirectories
+include(${CMAKE_CURRENT_LIST_DIR}/src/network/CMakeLists.txt)
+
 # Define project
 project(zephyr-witekio-demo)
 target_sources(app PRIVATE src/main.c)

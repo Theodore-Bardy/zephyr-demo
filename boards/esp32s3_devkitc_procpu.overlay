@@ -12,6 +12,11 @@
     aliases {
         led-strip = &led_strip;
     };
+
+    wifi_ap: wifi_ap {
+        compatible = "espressif,esp32-wifi";
+        status = "okay";
+    };
 };
 
 &i2s0_default {
