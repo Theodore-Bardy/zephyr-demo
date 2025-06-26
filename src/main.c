@@ -15,6 +15,7 @@ LOG_MODULE_REGISTER(main);
 #include <zephyr/drivers/led_strip.h>
 
 #include "wifi_agent.h"
+#include "ota_agent.h"
 
 #define STRIP_NODE DT_ALIAS(led_strip)
 #if DT_NODE_HAS_PROP(DT_ALIAS(led_strip), chain_length)
@@ -75,6 +76,7 @@ int main(void)
 
     wifi_agent_init();
     wifi_agent_connect();
+    ota_agent_init();
 
     while (1) {
         k_sleep(K_FOREVER);

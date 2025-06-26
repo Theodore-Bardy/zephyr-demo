@@ -1,6 +1,7 @@
 common:
   tags:
     - wifi
+    - mender
 sample:
   name: Witekio Zephyr demo
   description: Demo application for Witekio meetups using Zephyr RTOS
