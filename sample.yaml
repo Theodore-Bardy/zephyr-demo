@@ -1,6 +1,0 @@
-common:
-  tags:
-    - wifi
-sample:
-  name: Witekio Zephyr demo
-  description: Demo application for Witekio meetups using Zephyr RTOS
