@@ -1,8 +1,8 @@
-# author: Theodore Bardy
+# @file      CMakeLists.txt
+# @author    Theodore Bardy
 #
-# Wi-Fi CMakeLists.txt file
-# This file is part of the Zephyr Demo project from Witekio
-# It configures the Wi-Fi settings for the Zephyr Demo application
+# @note      This file is part of Witekio's Zephyr Demo project
+# @brief     CMake file for Wi-Fi stack
 
 # Include Wi-Fi source files
 file(GLOB_RECURSE SOURCES_TEMP ${CMAKE_CURRENT_LIST_DIR}/src/*.c)

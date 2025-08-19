@@ -1,4 +1,10 @@
-mainmenu "Configuration for the Zephyr Demo project from Witekio"
+# @file      Kconfig
+# @author    Theodore Bardy
+#
+# @note      This file is part of Witekio's Zephyr Demo project
+# @brief     Witekio's Zephyr Demo Kconfig file
+
+mainmenu "Witekio's Zephyr Demo Configuration"
 
 menu "Wi-Fi Configuration"
 

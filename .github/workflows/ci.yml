@@ -1,0 +1,39 @@
+# @file      ci.yml
+# @author    Theodore Bardy
+#
+# @note      This file is part of Witekio's Zephyr Demo project
+# @brief     Performs code format checks
+
+name: ci
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    types: [opened, synchronize, reopened]
+  schedule:
+    - cron: '0 0 1 * *'
+
+jobs:
+  check:
+    name: Check code format
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Install tools
+        run: |
+          sudo apt-get install clang-format pcregrep
+      - name: Check headers
+        run: |
+          ./.github/workflows/check_headers.sh
+      - name: Check include guards
+        run: |
+          ./.github/workflows/check_include_guards.sh
+      - name: Check equivalence tests
+        run: |
+          ./.github/workflows/check_equivalence_tests.sh
+      - name: Check code format
+        run: |
+          ./.github/workflows/check_code_format.sh

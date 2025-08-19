@@ -1,8 +1,8 @@
-# author: Theodore Bardy
+# @file      CMakeLists.txt
+# @author    Theodore Bardy
 #
-# Network CMakeLists.txt file
-# This file is part of the Zephyr Demo project from Witekio
-# It configures the network settings for the Zephyr Demo application
+# @note      This file is part of Witekio's Zephyr Demo project
+# @brief     CMake file for network stacks
 
 # Include subdirectories
 include(${CMAKE_CURRENT_LIST_DIR}/wifi/CMakeLists.txt)

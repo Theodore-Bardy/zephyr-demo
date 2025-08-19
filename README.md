@@ -1,5 +1,7 @@
 # Zephyr demo for Witekio
 
+[![CI Badge](https://github.com/Theodore-Bardy/zephyr-demo/workflows/ci/badge.svg)](https://github.com/Theodore-Bardy/zephyr-demo/actions)
+
 This Witekio's project is a demo based on Zephyr.
 
 It stands to show the capabilities of Zephyr and how easy it is to develop secure and connected devices with Zephyr.
