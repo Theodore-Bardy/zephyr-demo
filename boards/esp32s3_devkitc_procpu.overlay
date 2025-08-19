@@ -1,9 +1,9 @@
 /**
- * @file esp32s3_devkitc_procpu.overlay
- * @author Theodore Bardy
+ * @file      esp32s3_devkitc_procpu.overlay
+ * @author    Theodore Bardy
  *
- * @note This file is part of the Zephyr Demo project from Witekio
- * @brief Devicetree overlay for the esp32s3_devkitc/esp32s3/procpu board
+ * @note      This file is part of Witekio's Zephyr Demo project
+ * @brief     Devicetree overlay for the esp32s3_devkitc/esp32s3/procpu board
  */
 
 #include <zephyr/dt-bindings/led/led.h>

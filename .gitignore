@@ -1,6 +1,8 @@
-# author: Theodore Bardy
+# @file      .gitignore
+# @author    Theodore Bardy
 #
-# This file is part of the Zephyr Demo project from Witekio
+# @note      This file is part of Witekio's Zephyr Demo project
+# @brief     Git ignore file
 
 .vscode/
 build*

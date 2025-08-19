@@ -1,8 +1,8 @@
-# author: Theodore Bardy
+# @file      CMakeLists.txt
+# @author    Theodore Bardy
 #
-# Sysbuild CMakeLists.txt file
-# This file is part of the Zephyr Demo project from Witekio
-# It configures the Zephyr sysbuild for the demo project
+# @note      This file is part of Witekio's Zephyr Demo project
+# @brief     CMake file for sysbuild configuration
 
 # Set minimum CMake version
 cmake_minimum_required(VERSION 3.20.0)

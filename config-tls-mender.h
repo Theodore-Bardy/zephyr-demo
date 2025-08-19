@@ -1,9 +1,9 @@
 /**
- * @file config-tls-mender.h
- * @author Theodore Bardy
+ * @file      config-tls-mender.h
+ * @author    Theodore Bardy
  *
- * @note This file is part of the Zephyr Demo project from Witekio
- * @brief Configuration for Mender TLS
+ * @note      This file is part of Witekio's Zephyr Demo project
+ * @brief     Configuration for Mender TLS
  */
 
 // Copyright 2025 Northern.tech AS
@@ -20,6 +20,14 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
+#ifndef CONFIG_TLS_MENDER_H
+#define CONFIG_TLS_MENDER_H
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif // __cplusplus
+
 /* Zephyr's config-tls-generic.h defines this macro to the value of
    CONFIG_MBEDTLS_SSL_MAX_CONTENT_LEN. However, that config value is used for
    both input and output content and we can only use smaller output content
@@ -31,3 +39,9 @@
 #undef MBEDTLS_SSL_OUT_CONTENT_LEN
 #endif
 #define MBEDTLS_SSL_OUT_CONTENT_LEN 4096
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus
+
+#endif // CONFIG_TLS_MENDER_H
