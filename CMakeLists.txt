@@ -21,6 +21,7 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 # Include subdirectories
 include(${CMAKE_CURRENT_LIST_DIR}/src/network/CMakeLists.txt)
 include(${CMAKE_CURRENT_LIST_DIR}/src/ota/CMakeLists.txt)
+include(${CMAKE_CURRENT_LIST_DIR}/src/ui/CMakeLists.txt)
 
 # Define project
 project(zephyr-witekio-demo)

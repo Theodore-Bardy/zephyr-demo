@@ -46,20 +46,22 @@ static mender_identity_t mender_identity        = {
 #define OTA_AGENT_THREAD_STACK_SIZE (4096)
 #define OTA_AGENT_THREAD_PRIORITY   (3)
 
-K_SEM_DEFINE(ota_agent_initialized, 0, 1);
+K_SEM_DEFINE(ota_agent_initialized_sem, 0, 1);
+K_SEM_DEFINE(ota_agent_start_sem, 0, 1);
+K_SEM_DEFINE(ota_agent_stop_sem, 0, 1);
 
-void
-ota_agent_init (void)
+// OTA agent state machine enumeration
+enum ota_agent_state
 {
-    if (!wifi_agent_connect())
-    {
-        LOG_ERR("Failed to connect to Wi-Fi");
-        return;
-    }
+    OTA_AGENT_STATE_IDLE,
+    OTA_AGENT_STATE_CONNECTING,
+    OTA_AGENT_STATE_CONNECTED,
+    OTA_AGENT_STATE_DISCONNECTING,
+};
+static enum ota_agent_state current_state = OTA_AGENT_STATE_IDLE;
 
-    LOG_INF("OTA agent initialized");
-    k_sem_give(&ota_agent_initialized);
-}
+// Flag indicating if the OTA agent has been initialized
+static bool is_ota_agent_initialized = false;
 
 /**
  * @brief Install TLS credentials for Hosted Mender setup
@@ -144,100 +146,181 @@ prvPersistentInventoryCb (mender_keystore_t **keystore, uint8_t *keystore_len)
     return MENDER_OK;
 }
 
+
+bool
+ota_agent_init (void)
+{
+    if (is_ota_agent_initialized)
+    {
+        LOG_WRN("OTA agent is already initialized");
+        return true;
+    }
+
+    // Add TLS credentials
+    switch (prvCertsAddCredentials())
+    {
+        case 0:
+            LOG_INF("TLS credentials added successfully");
+            break;
+
+        case -EACCES:
+            LOG_ERR("Failed to add TLS credentials: Access denied");
+            break;
+
+        case -ENOMEM:
+            LOG_ERR("Failed to add TLS credentials: Out of memory");
+            break;
+
+        case -EEXIST:
+            LOG_WRN("TLS credentials already exist, continuing");
+            break;
+
+        default:
+            LOG_ERR("Failed to add TLS credentials: Unknown error");
+            break;
+    }
+
+    // Initialize mender-client
+    mender_client_config_t mender_client_config
+        = { .device_type     = CONFIG_MENDER_DEVICE_TYPE,
+            .recommissioning = false };
+    mender_client_callbacks_t mender_client_callbacks
+        = { .network_connect        = prvMenderNetworkConnectCb,
+            .network_release        = prvMenderNetworkReleaseCb,
+            .deployment_status      = prvMenderDeploymentStatusCb,
+            .restart                = prvMenderRestartCb,
+            .get_identity           = prvMenderGetIdentityCb,
+            .get_user_provided_keys = NULL };
+
+    LOG_INF("Initializing Mender Client with:");
+    LOG_INF("   Device type:   '%s'", mender_client_config.device_type);
+    LOG_INF("   Identity:      '{\"%s\": \"%s\"}'",
+            mender_identity.name,
+            mender_identity.value);
+
+    if (MENDER_OK
+        != mender_client_init(&mender_client_config,
+                            &mender_client_callbacks))
+    {
+        LOG_ERR("Failed to initialize Mender Client");
+        goto END;
+    }
+    LOG_INF("Mender client initialized");
+
+#ifdef CONFIG_MENDER_ZEPHYR_IMAGE_UPDATE_MODULE
+    if (MENDER_OK != mender_zephyr_image_register_update_module())
+    {
+        LOG_ERR("Failed to register the zephyr-image Update Module");
+        goto END;
+    }
+    LOG_INF("Update Module 'zephyr-image' initialized");
+#endif /* CONFIG_MENDER_ZEPHYR_IMAGE_UPDATE_MODULE */
+
+    if (MENDER_OK
+        != mender_inventory_add_callback(prvPersistentInventoryCb,
+                                        true))
+    {
+        LOG_ERR("Failed to add persistent inventory callback");
+        goto END;
+    }
+    LOG_INF("Persistent inventory callback added");
+
+    LOG_INF("OTA agent initialized");
+    k_sem_give(&ota_agent_initialized_sem);
+    is_ota_agent_initialized = true;
+
+END:
+    return is_ota_agent_initialized;
+}
+
+bool ota_agent_start(void)
+{
+    if (!is_ota_agent_initialized)
+    {
+        LOG_ERR("OTA agent is not initialized");
+        return false;
+    }
+
+    k_sem_give(&ota_agent_start_sem);
+    return true;
+}
+
+bool ota_agent_stop(void)
+{
+    if (!is_ota_agent_initialized)
+    {
+        LOG_ERR("OTA agent is not initialized");
+        return false;
+    }
+
+    k_sem_give(&ota_agent_stop_sem);
+    return true;
+}
+
+
 static void
 prvOtaAgentThread (void *arg1, void *arg2, void *arg3)
 {
-    // Wait for the OTA agent to be initialized
-    k_sem_take(&ota_agent_initialized, K_FOREVER);
-
     LOG_INF("OTA agent thread started");
+
+    // Wait for the OTA agent to be initialized
+    k_sem_take(&ota_agent_initialized_sem, K_FOREVER);
 
     while (true)
     {
-        // Wait for Wi-Fi to be connected
-        if (wifi_agent_is_connected(10000))
+        switch (current_state)
         {
-            wifi_agent_get_mac_address(mender_identity.value);
+            case OTA_AGENT_STATE_IDLE:
+                LOG_INF("OTA_AGENT_STATE_IDLE");
+                k_sem_take(&ota_agent_start_sem, K_FOREVER);
+                current_state = OTA_AGENT_STATE_CONNECTING;
+                break;
 
-            // Add TLS credentials
-            switch (prvCertsAddCredentials())
-            {
-                case 0:
-                    LOG_INF("TLS credentials added successfully");
+            case OTA_AGENT_STATE_CONNECTING:
+                LOG_INF("OTA_AGENT_STATE_CONNECTING");
+                if (!wifi_agent_connect())
+                {
+                    LOG_ERR("Failed to connect to Wi-Fi");
+                    current_state = OTA_AGENT_STATE_IDLE;
                     break;
+                }
+                // Check connection for 2 seconds
+                if (wifi_agent_is_connected(2000))
+                {
+                    wifi_agent_get_mac_address(mender_identity.value);
 
-                case -EACCES:
-                    LOG_ERR("Failed to add TLS credentials: Access denied");
-                    break;
+                    // Start the Mender client
+                    if (MENDER_OK != mender_client_activate())
+                    {
+                        LOG_ERR("Failed to start Mender Client");
+                        break;
+                    }
+                    LOG_INF("Mender client started");
+                    current_state = OTA_AGENT_STATE_CONNECTED;
+                }
+                break;
+            
+            case OTA_AGENT_STATE_CONNECTED:
+                LOG_INF("OTA_AGENT_STATE_CONNECTED");
+                k_sem_take(&ota_agent_stop_sem, K_FOREVER);
+                current_state = OTA_AGENT_STATE_DISCONNECTING;
+                break;
 
-                case -ENOMEM:
-                    LOG_ERR("Failed to add TLS credentials: Out of memory");
-                    break;
-
-                case -EEXIST:
-                    LOG_WRN("TLS credentials already exist, continuing");
-                    break;
-
-                default:
-                    LOG_ERR("Failed to add TLS credentials: Unknown error");
-                    break;
-            }
-
-            // Initialize mender-client
-            mender_client_config_t mender_client_config
-                = { .device_type     = CONFIG_MENDER_DEVICE_TYPE,
-                    .recommissioning = false };
-            mender_client_callbacks_t mender_client_callbacks
-                = { .network_connect        = prvMenderNetworkConnectCb,
-                    .network_release        = prvMenderNetworkReleaseCb,
-                    .deployment_status      = prvMenderDeploymentStatusCb,
-                    .restart                = prvMenderRestartCb,
-                    .get_identity           = prvMenderGetIdentityCb,
-                    .get_user_provided_keys = NULL };
-
-            LOG_INF("Initializing Mender Client with:");
-            LOG_INF("   Device type:   '%s'", mender_client_config.device_type);
-            LOG_INF("   Identity:      '{\"%s\": \"%s\"}'",
-                    mender_identity.name,
-                    mender_identity.value);
-
-            if (MENDER_OK
-                != mender_client_init(&mender_client_config,
-                                      &mender_client_callbacks))
-            {
-                LOG_ERR("Failed to initialize Mender Client");
-                goto END;
-            }
-            LOG_INF("Mender client initialized");
-
-#ifdef CONFIG_MENDER_ZEPHYR_IMAGE_UPDATE_MODULE
-            if (MENDER_OK != mender_zephyr_image_register_update_module())
-            {
-                LOG_ERR("Failed to register the zephyr-image Update Module");
-                goto END;
-            }
-            LOG_INF("Update Module 'zephyr-image' initialized");
-#endif /* CONFIG_MENDER_ZEPHYR_IMAGE_UPDATE_MODULE */
-
-            if (MENDER_OK
-                != mender_inventory_add_callback(prvPersistentInventoryCb,
-                                                 true))
-            {
-                LOG_ERR("Failed to add persistent inventory callback");
-                goto END;
-            }
-            LOG_INF("Persistent inventory callback added");
-
-            // Start the Mender client
-            if (MENDER_OK != mender_client_activate())
-            {
-                LOG_ERR("Failed to start Mender Client");
-                goto END;
-            }
-            LOG_INF("Mender client started");
-
-        END:
-            k_sleep(K_FOREVER);
+            case OTA_AGENT_STATE_DISCONNECTING:
+                LOG_INF("OTA_AGENT_STATE_DISCONNECTING");
+                if (MENDER_OK != mender_client_deactivate())
+                {
+                    LOG_ERR("Failed to stop Mender Client");
+                }
+                LOG_INF("Mender client stopped");
+                wifi_agent_disconnect();
+                current_state = OTA_AGENT_STATE_IDLE;
+                break;
+        
+            default:
+                LOG_ERR("Unknown OTA agent state: %d", current_state);
+                current_state = OTA_AGENT_STATE_IDLE;
+                break;
         }
     }
 }

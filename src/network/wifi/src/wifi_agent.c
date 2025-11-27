@@ -17,6 +17,7 @@ LOG_MODULE_REGISTER(wifi_agent);
 #include <zephyr/net/wifi_mgmt.h>
 
 #include "wifi_agent.h"
+#include "led.h"
 
 // Nubmer of attempts to connect to Wi-Fi and sleep time between attempts
 #define WIFI_NB_TRIES        (5)
@@ -75,7 +76,7 @@ static enum wifi_agent_state current_state = WIFI_AGENT_STATE_IDLE;
 static struct net_mgmt_event_callback cb;
 static void
 prvWifiEventHandler (struct net_mgmt_event_callback *cb,
-                     uint32_t                        mgmt_event,
+                     uint64_t                        mgmt_event,
                      struct net_if                  *iface)
 {
     switch (mgmt_event)
@@ -91,7 +92,7 @@ prvWifiEventHandler (struct net_mgmt_event_callback *cb,
             break;
 
         default:
-            LOG_WRN("Unhandled Wi-Fi event: %u", mgmt_event);
+            LOG_WRN("Unhandled Wi-Fi event: %llu", mgmt_event);
             break;
     }
 }
@@ -134,6 +135,7 @@ wifi_agent_disconnect (void)
         return false;
     }
 
+    ui_led_set(UI_LED_COLOR_RED);
     if (net_mgmt(NET_REQUEST_WIFI_DISCONNECT, wifi_iface, NULL, 0))
     {
         LOG_ERR("Failed to initiate Wi-Fi disconnection");
@@ -148,7 +150,7 @@ wifi_agent_is_connected (size_t delay_ms)
 {
     while (delay_ms > 0 && WIFI_AGENT_STATE_CONNECTED != current_state)
     {
-        k_msleep((100));
+        k_msleep(100);
         delay_ms -= 100;
     }
     return (WIFI_AGENT_STATE_CONNECTED == current_state) ? true : false;
@@ -170,7 +172,7 @@ prvWifiConnect (void)
         if (net_mgmt(NET_REQUEST_WIFI_CONNECT,
                      wifi_iface,
                      &wifi_config,
-                     sizeof(wifi_config)))
+                     sizeof(struct wifi_connect_req_params)))
         {
             LOG_ERR("Connect request failed. Retrying...");
             k_msleep(WIFI_SLEEP_BTW_TRIES);
@@ -211,10 +213,10 @@ wifi_agent_get_mac_address (char *mac_address)
 static void
 prvWifiAgentThread (void *arg1, void *arg2, void *arg3)
 {
+    LOG_INF("Wi-Fi agent thread started");
+
     // Wait for the Wi-Fi agent to be initialized
     k_sem_take(&wifi_agent_initialized, K_FOREVER);
-
-    LOG_INF("Wi-Fi agent thread started");
 
     while (true)
     {
@@ -229,7 +231,7 @@ prvWifiAgentThread (void *arg1, void *arg2, void *arg3)
             case WIFI_AGENT_STATE_CONNECTING:
                 // Attempt to connect to Wi-Fi
                 LOG_INF("Attempting to connect to Wi-Fi...");
-
+                ui_led_set(UI_LED_COLOR_CYAN);
                 if (!prvWifiConnect())
                 {
                     LOG_ERR("Failed to connect to Wi-Fi");
@@ -244,6 +246,8 @@ prvWifiAgentThread (void *arg1, void *arg2, void *arg3)
             case WIFI_AGENT_STATE_CONNECTED:
                 // Handle connected state
                 LOG_INF("Wi-Fi connected to the AP");
+                ui_led_set(UI_LED_COLOR_GREEN);
+
                 k_sem_take(&sem_wifi_agent_disconnected, K_FOREVER);
                 current_state = WIFI_AGENT_STATE_IDLE;
                 break;

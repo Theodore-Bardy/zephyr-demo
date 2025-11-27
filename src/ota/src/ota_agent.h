@@ -9,6 +9,8 @@
 #ifndef OTA_AGENT_H
 #define OTA_AGENT_H
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -16,8 +18,21 @@ extern "C"
 
     /**
      * @brief Initializes the OTA agent
+     * @return true if the OTA agent initialized successfully, false otherwise
      */
-    void ota_agent_init(void);
+    bool ota_agent_init(void);
+
+    /**
+     * @brief Starts the OTA agent
+     * @return true if the OTA agent started successfully, false otherwise
+     */
+    bool ota_agent_start(void);
+    
+    /**
+     * @brief Stops the OTA agent
+     * @return true if the OTA agent stopped successfully, false otherwise
+     */
+    bool ota_agent_stop(void);
 
 #ifdef __cplusplus
 }

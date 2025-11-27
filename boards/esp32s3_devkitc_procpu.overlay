@@ -7,16 +7,35 @@
  */
 
 #include <zephyr/dt-bindings/led/led.h>
+#include <zephyr/dt-bindings/gpio/gpio.h>
 
 / {
     aliases {
         led-strip = &led_strip;
+        bt0 = &bt0;
     };
 
     wifi_ap: wifi_ap {
         compatible = "espressif,esp32-wifi";
         status = "okay";
     };
+
+    buttons {
+        compatible = "gpio-keys";
+        bt0: bt0 {
+            gpios = <&gpio0 4 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+            label = "External Button 0";
+            status = "okay";
+        };
+    };
+};
+
+&deep_sleep {
+    status = "okay";
+};
+
+&gpio0 {
+    status = "okay";
 };
 
 &i2s0_default {
